@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Accounts {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  email           String            @unique
+  password        String
+  Profile         Profiles?
+  Token           Token?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updateAt        DateTime          @default(now()) @map("update_at")
+  SubAccount      SubAccounts[]
+  Transaction     Transaction[]
+  Goal            Goals[]
+  Expenses        Expenses[]
+  IncomeResources IncomeResources[]
+
+  @@map("accounts")
+}
+
+model Token {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  accountId String   @unique @map("account_id") @db.ObjectId
+  Accounts  Accounts @relation(fields: [accountId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tokens")
+}
+
+model Profiles {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName     String?  @map("first_name")
+  lastName      String?  @map("last_name")
+  totalBalance  Float    @map("total_balance")
+  totalIncome   Float    @map("total_income")
+  totalExpenses Float    @map("total_expenses")
+  description   String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  account       Accounts @relation(fields: [accountId], references: [id])
+  accountId     String   @unique @db.ObjectId
+
+  @@map("profiles")
+}
+
+model SubAccounts {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  accountType String   @map("account_type")
+  amount      Float
+  account     Accounts @relation(fields: [accountId], references: [id])
+  accountId   String   @map("account_id") @db.ObjectId
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("sub_accounts")
+}
+
+model IncomeResources {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  amount      Float
+  isRecurring Boolean  @map("is_recuring")
+  frequency   String
+  account_id  String   @db.ObjectId
+  date        DateTime @map("date")
+  Account     Accounts @relation(fields: [account_id], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("income_resources")
+}
+
+model Transaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  type      String
+  date      DateTime
+  amount    Float
+  account   Accounts @relation(fields: [accountId], references: [id])
+  accountId String   @map("account_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("transactions")
+}
+
+model Goals {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  account     Accounts @relation(fields: [accountId], references: [id])
+  accountId   String   @map("account_id") @db.ObjectId
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("goals")
+}
+
+model Expenses {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  date          DateTime
+  amount        Float
+  paymentMethod String   @map("payment_method")
+  account       Accounts @relation(fields: [accountId], references: [id])
+  accountId     String   @map("account_id") @db.ObjectId
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("expenses")
+}
