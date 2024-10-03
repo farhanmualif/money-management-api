@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
-    "start": "nodemon index.js",
+    "start": "node dist/index.cjs",
     "start:prod": "node dist/index.js",
     "drop": "node prisma/drop.js",
     "build": "webpack --mode production",
@@ -34,6 +34,7 @@
     "@babel/core": "^7.25.7",
     "@babel/preset-env": "^7.25.7",
     "babel-loader": "^9.2.1",
+    "dotenv-webpack": "^8.1.0",
     "nodemon": "^3.1.7",
     "prettier": "^3.3.3",
     "prisma": "^5.20.0",
