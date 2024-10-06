@@ -64,18 +64,36 @@ export default class IncomeRecourceController {
 
   static async expectedIncome(req, res, next) {
     try {
-      const expectedIncome = await prisma.incomeResources.aggregate({
+      // Ambil totalIncome dari tabel profiles berdasarkan accountId
+      const currentIncome = await prisma.profiles.findFirst({
+        where: {
+          accountId: res.account.id,
+        },
+        select: {
+          totalIncome: true,
+        },
+      });
+
+      // Agregasi sum dari amount di tabel incomeResources berdasarkan account_id
+      const incomeResources = await prisma.incomeResources.aggregate({
+        where: {
+          account_id: res.account.id,
+        },
         _sum: {
           amount: true,
         },
       });
+
+      // Pastikan nilai yang diambil tidak null sebelum melakukan penjumlahan
+      const totalCurrentIncome = currentIncome?.totalIncome || 0;
+      const totalIncomeResources = incomeResources._sum.amount || 0;
 
       res.status(200).json({
         status: true,
         message: 'Get Expected Income Successfully',
         data: {
           accountId: res.account.id,
-          expectedIncome: expectedIncome._sum.amount,
+          expectedIncome: totalCurrentIncome + totalIncomeResources,
         },
       });
     } catch (error) {
@@ -103,7 +121,7 @@ export default class IncomeRecourceController {
             },
           });
 
-          return await prisma.profiles.update({
+          const updateProfile = await prisma.profiles.update({
             where: {
               accountId: res.account.id,
             },
@@ -112,12 +130,27 @@ export default class IncomeRecourceController {
               totalIncome: currentIncome.totalIncome + itemIncome.amount,
             },
           });
+
+          await prisma.balanceHistory.create({
+            data: {
+              accountId: res.account.id,
+              balance: updateProfile.totalBalance,
+            },
+          });
+
+          await prisma.incomeResources.delete({
+            where: {
+              id: req.params.source_income_id,
+            },
+          });
+
+          return updateProfile;
         }
       );
 
       res.status(200).json({
         status: true,
-        message: 'Update Total Income Successfully',
+        message: 'Earned Income Successfully',
         data: updatedTotalIncome,
       });
     } catch (error) {

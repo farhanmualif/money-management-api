@@ -18,25 +18,27 @@ model Accounts {
   email           String            @unique
   password        String
   Profile         Profiles?
-  Token           Token?
+  Token           Token[]
   createdAt       DateTime          @default(now()) @map("created_at")
-  updateAt        DateTime          @default(now()) @map("update_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
   SubAccount      SubAccounts[]
   Transaction     Transaction[]
   Goal            Goals[]
   Expenses        Expenses[]
   IncomeResources IncomeResources[]
+  BalanceHistory  BalanceHistory[]
 
   @@map("accounts")
 }
 
 model Token {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  token     String   @unique
-  accountId String   @unique @map("account_id") @db.ObjectId
-  Accounts  Accounts @relation(fields: [accountId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  token     String    @unique
+  accountId String    @map("account_id") @db.ObjectId
+  Accounts  Accounts  @relation(fields: [accountId], references: [id])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  expiresAt DateTime?
 
   @@map("tokens")
 }
@@ -55,6 +57,17 @@ model Profiles {
   accountId     String   @unique @db.ObjectId
 
   @@map("profiles")
+}
+
+model BalanceHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  accountId String   @map("account_id") @db.ObjectId
+  account   Accounts @relation(fields: [accountId], references: [id])
+  balance   Float
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("balance_history")
 }
 
 model SubAccounts {

@@ -59,6 +59,26 @@ export class ExpenceController {
     }
   }
 
+  static async upcoming(req, res, next) {
+    try {
+      const expense = await prisma.expenses.findMany({
+        where: {
+          id: req.params.id,
+          date: {
+            gt: new Date(),
+          },
+        },
+      });
+      res.status(200).json({
+        status: true,
+        message: 'Get Expenses Successfully',
+        data: expense,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async earned(req, res, next) {
     try {
       const updatedTotalIncome = await prisma.$transaction(
@@ -94,7 +114,7 @@ export class ExpenceController {
             },
           });
 
-          return await prisma.profiles.update({
+          const updateProfile = await prisma.profiles.update({
             where: {
               accountId: res.account.id,
             },
@@ -103,6 +123,15 @@ export class ExpenceController {
               totalExpenses: currentExpense.totalExpenses + itemExpense.amount,
             },
           });
+
+          await prisma.balanceHistory.create({
+            data: {
+              accountId: res.account.id,
+              balance: updateProfile.totalBalance,
+            },
+          });
+
+          return updateProfile;
         }
       );
 

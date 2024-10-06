@@ -24,6 +24,7 @@ const dropCollections = async () => {
       'transaction',
       'goal',
       'expense',
+      'balance_history',
     ];
 
     for (const model of models) {

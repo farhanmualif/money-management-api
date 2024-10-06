@@ -14,12 +14,21 @@ import { createGoalSchema } from '../validations/goal-validation.js';
 import { ExpenceController } from '../controllers/expence-controller.js';
 import { createExpenseSchema } from '../validations/expense-validation.js';
 import { authenticated } from '../middlewares/authenticated.js';
+import TransactionController from '../controllers/transaction-controller.js';
 const router = express.Router();
 
 router.post(
   '/account/signin',
   validate(userSignInSchema),
   AccountController.signIn
+);
+
+router.post('/account/logout', authenticated, AccountController.logout);
+
+router.post(
+  '/account/authenticated',
+  authenticated,
+  AccountController.authenticated
 );
 
 router.post(
@@ -35,9 +44,11 @@ router.post(
 );
 
 router.get('/profile', authenticated, AccountController.getProfile);
+router.get('/transaction', authenticated, TransactionController.get);
+router.get('/transaction/:id', authenticated, TransactionController.getById);
 
 router.post(
-  '/income-source',
+  '/income',
   validateWithToken(createIncomeResourceSchema),
   IncomeRecourceController.create
 );
@@ -48,26 +59,22 @@ router.post(
   IncomeRecourceController.earned
 );
 
-router.get('/income-source', authenticated, IncomeRecourceController.get);
+router.get('/income', authenticated, IncomeRecourceController.get);
 router.get(
   '/expected-income',
   authenticated,
   IncomeRecourceController.expectedIncome
 );
 
-router.get(
-  '/income-source/:id',
-  authenticated,
-  IncomeRecourceController.getById
-);
+router.get('/income/:id', authenticated, IncomeRecourceController.getById);
 
 router.put(
-  '/income-source/:id',
+  '/income/:id',
   validateWithToken(createIncomeResourceSchema),
   IncomeRecourceController.updateIncome
 );
 router.delete(
-  '/income-source/:id',
+  '/income/:id',
   authenticated,
   IncomeRecourceController.deleteIncome
 );
@@ -84,6 +91,9 @@ router.post(
   validateWithToken(createExpenseSchema),
   ExpenceController.create
 );
+router.get('/expence-upcoming', authenticated, ExpenceController.upcoming);
+router.get('/balance-history', authenticated, AccountController.balanceHistory);
+
 router.post(
   '/expence/:source_expense_id/earned',
   authenticated,

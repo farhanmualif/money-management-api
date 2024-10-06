@@ -1,6 +1,10 @@
 import { prisma } from '../config/db.js';
 import bcrypt from 'bcrypt';
-import { BadRequestError, NotFoundError } from '../errors/errors.js';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+} from '../errors/errors.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -109,6 +113,89 @@ export default class AccountController {
         status: true,
         message: 'Get Data Profile Successfully',
         data: profile,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async logout(req, res, next) {
+    try {
+      const authorizationHeader = req.headers['authorization'];
+      if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+        throw new UnauthorizedError('You Are Not Authenticated');
+      }
+
+      const token = authorizationHeader.split(' ')[1];
+      const findToken = await prisma.token.findUnique({
+        where: {
+          token,
+        },
+      });
+
+      if (!findToken) {
+        throw new NotFoundError('Token Not Found');
+      }
+
+      await prisma.token.delete({
+        where: {
+          token,
+        },
+      });
+
+      res.status(200).json({
+        status: true,
+        message: 'Logout successful',
+        data: [],
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async authenticated(req, res, next) {
+    try {
+      const authorizationHeader = req.headers['authorization'];
+      if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+        throw new UnauthorizedError('You Are Not Authenticated');
+      }
+
+      const token = authorizationHeader.split(' ')[1];
+      const authenticated = await prisma.token.findFirst({
+        where: {
+          token,
+          Accounts: {
+            email: req.body.email,
+          },
+        },
+        include: {
+          Accounts: true,
+        },
+      });
+
+      if (!authenticated) {
+        throw new UnauthorizedError();
+      }
+
+      delete authenticated.Accounts.password;
+
+      res.status(201).json({
+        status: true,
+        message: 'Authorization',
+        data: authenticated,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  static async balanceHistory(req, res, next) {
+    try {
+      const balanceHistory = await prisma.balanceHistory.findMany();
+
+      res.status(201).json({
+        status: true,
+        message: 'Get Data Balance History successfully',
+        data: balanceHistory,
       });
     } catch (error) {
       next(error);

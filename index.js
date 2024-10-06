@@ -16,6 +16,12 @@ connectDB();
 
 app.use('/api', router);
 
+app.get('/', function (req, res) {
+  res.json({
+    data: 'Hello, Welcome to Money Management Api',
+  });
+});
+
 app.use(errorHandler);
 app.use(notFoundHandler);
 

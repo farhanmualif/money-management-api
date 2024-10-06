@@ -7,10 +7,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
-    "start": "node dist/index.cjs",
-    "start:prod": "node dist/index.js",
+    "start": "nodemon index.js",
     "drop": "node prisma/drop.js",
-    "build": "webpack --mode production",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -34,12 +32,8 @@
     "@babel/core": "^7.25.7",
     "@babel/preset-env": "^7.25.7",
     "babel-loader": "^9.2.1",
-    "dotenv-webpack": "^8.1.0",
     "nodemon": "^3.1.7",
     "prettier": "^3.3.3",
-    "prisma": "^5.20.0",
-    "webpack": "^5.95.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-node-externals": "^3.0.0"
+    "prisma": "^5.20.0"
   }
 }

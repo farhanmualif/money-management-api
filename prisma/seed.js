@@ -62,6 +62,28 @@ async function main() {
           date: new Date('2022-01-01'),
         },
       },
+      BalanceHistory: {
+        create: [
+          {
+            balance: 20000,
+          },
+          {
+            balance: 15000,
+          },
+          {
+            balance: 10000,
+          },
+          {
+            balance: 30000,
+          },
+          {
+            balance: 20000,
+          },
+          {
+            balance: 40000,
+          },
+        ],
+      },
     },
   });
 
@@ -123,6 +145,28 @@ async function main() {
           frequency: 'QUARTERLY',
           date: new Date('2022-01-15'),
         },
+      },
+      BalanceHistory: {
+        create: [
+          {
+            balance: 20000,
+          },
+          {
+            balance: 15000,
+          },
+          {
+            balance: 10000,
+          },
+          {
+            balance: 30000,
+          },
+          {
+            balance: 20000,
+          },
+          {
+            balance: 40000,
+          },
+        ],
       },
     },
   });

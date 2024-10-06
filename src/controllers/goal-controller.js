@@ -1,5 +1,4 @@
 import { prisma } from '../config/db.js';
-import { BadRequestError, NotFoundError } from '../errors/errors.js';
 
 export default class GoalController {
   static async create(req, res, next) {
@@ -34,7 +33,7 @@ export default class GoalController {
   }
   static async get(req, res, next) {
     try {
-      const findGoal = await prisma.goals.findFirst({
+      const findGoal = await prisma.goals.findMany({
         where: {
           accountId: res.account.id,
         },
