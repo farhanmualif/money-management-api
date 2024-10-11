@@ -9,6 +9,7 @@ async function main() {
   const account1 = await prisma.accounts.create({
     data: {
       email: 'user@mail.com',
+      phoneNumber: '087775785587',
       password: await bcrypt.hash('password123', 10),
       Profile: {
         create: {
@@ -51,6 +52,8 @@ async function main() {
           date: new Date('2022-01-01'),
           amount: 500.0,
           paymentMethod: 'BANK_TRANSFER',
+          isRequring: false,
+          frequency: 'Daily',
         },
       },
       IncomeResources: {
@@ -90,6 +93,7 @@ async function main() {
   const account2 = await prisma.accounts.create({
     data: {
       email: 'admin@mail.com',
+      phoneNumber: '0858961462348',
       password: await bcrypt.hash('password123', 10),
       Profile: {
         create: {
@@ -130,20 +134,66 @@ async function main() {
         },
       },
       Expenses: {
-        create: {
-          name: 'Utilities',
-          date: new Date('2022-01-15'),
-          amount: 300.0,
-          paymentMethod: 'CREDIT_CARD',
+        createMany:{
+          data: [
+            {
+              name: 'Utilities',
+              date: new Date('2022-01-15'),
+              amount: 100000,
+              isEarned: true,
+              paymentMethod: 'CREDIT_CARD',
+              isRequring: true,
+              frequency: 'Weekly',
+            },
+            {
+              name: 'Internet',
+              date: new Date('2022-01-15'),
+              amount: 300000,
+              isEarned: true,
+              paymentMethod: 'TRANSFER',
+              isRequring: true,
+              frequency: 'Monthly',
+            },
+            {
+              name: 'Bensin',
+              date: new Date('2022-01-15'),
+              amount: 100000,
+              isEarned: true,
+              paymentMethod: 'CREDIT_CARD',
+              isRequring: true,
+              frequency: 'Daily',
+            }
+          ]
         },
       },
       IncomeResources: {
-        create: {
-          name: 'Freelance',
-          amount: 1500.0,
-          isRecurring: false,
-          frequency: 'QUARTERLY',
-          date: new Date('2022-01-15'),
+        createMany: {
+          data:[
+            {
+              name: 'Freelance',
+              amount: 1500.0,
+              isRecurring: false,
+              frequency: 'Daily',
+              isEarned: false,
+              date: new Date('2022-01-15'),
+            },
+            {
+              name: 'Work',
+              amount: 1500.0,
+              isRecurring: false,
+              frequency: 'Monthly',
+              isEarned: true,
+              date: new Date('2022-01-15'),
+            },
+            {
+              name: 'Joki',
+              amount: 1500.0,
+              isRecurring: true,
+              frequency: 'Weekly',
+              isEarned: false,
+              date: new Date('2022-01-15'),
+            },
+          ]
         },
       },
       BalanceHistory: {

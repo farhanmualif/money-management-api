@@ -4,6 +4,7 @@ import {
   NotFoundError,
   BadRequestError,
   UnauthorizedError,
+  UnprocessableEntityError,
 } from '../errors/errors.js';
 
 import { ZodError } from 'zod';
@@ -78,6 +79,13 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   if (err instanceof NotFoundError) {
+    return res.status(400).json({
+      status: false,
+      message: err.message,
+    });
+  }
+
+  if (err instanceof UnprocessableEntityError) {
     return res.status(400).json({
       status: false,
       message: err.message,

@@ -1,4 +1,10 @@
 import { prisma } from '../config/db.js';
+import {
+  differenceInDays,
+  differenceInWeeks,
+  differenceInMonths,
+} from 'date-fns';
+import { UnprocessableEntityError } from '../errors/errors.js';
 
 export class ExpenceController {
   static async create(req, res, next) {
@@ -11,6 +17,8 @@ export class ExpenceController {
           date: new Date(body.date),
           accountId: res.account.id,
           paymentMethod: body.payment_method,
+          isRequring: body.isRequring,
+          frequency: body.frequency,
         },
       });
 
@@ -40,6 +48,47 @@ export class ExpenceController {
       next(error);
     }
   }
+  static async delete(req, res, next) {
+    try {
+      await prisma.expenses.delete({
+        where: {
+          id: req.params.id,
+        },
+      });
+      res.status(200).json({
+        status: true,
+        message: 'Delete Expenses Successfully',
+        data: '',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  static async update(req, res, next) {
+    const body = req.body;
+    try {
+      const updated = await prisma.expenses.update({
+        where: {
+          id: req.params.id,
+        },
+        data: {
+          name: body.name,
+          amount: body.amount,
+          date: new Date(body.date),
+          paymentMethod: body.paymentMethod,
+          isRequring: body.isRequring,
+          frequency: body.frequency,
+        },
+      });
+      res.status(200).json({
+        status: true,
+        message: 'Update Expenses Successfully',
+        data: updated,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   static async getById(req, res, next) {
     try {
@@ -61,18 +110,84 @@ export class ExpenceController {
 
   static async upcoming(req, res, next) {
     try {
-      const expense = await prisma.expenses.findMany({
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set ke awal hari
+
+      const upcomingExpenses = await prisma.expenses.findMany({
         where: {
-          id: req.params.id,
-          date: {
-            gt: new Date(),
-          },
+          isEarned: false,
+        },
+        orderBy: {
+          date: 'asc',
         },
       });
+
+      // Opsional: Tambahkan logika untuk mengelompokkan pengeluaran berdasarkan periode waktu
+      const groupedExpenses = {
+        today: [],
+        thisWeek: [],
+        thisMonth: [],
+        later: [],
+      };
+
+      const oneWeekLater = new Date(today);
+      oneWeekLater.setDate(today.getDate() + 7);
+
+      const oneMonthLater = new Date(today);
+      oneMonthLater.setMonth(today.getMonth() + 1);
+
+      upcomingExpenses.forEach((expense) => {
+        if (expense.date.toDateString() === today.toDateString()) {
+          groupedExpenses.today.push(expense);
+        } else if (expense.date < oneWeekLater) {
+          groupedExpenses.thisWeek.push(expense);
+        } else if (expense.date < oneMonthLater) {
+          groupedExpenses.thisMonth.push(expense);
+        } else {
+          groupedExpenses.later.push(expense);
+        }
+      });
+
       res.status(200).json({
         status: true,
-        message: 'Get Expenses Successfully',
-        data: expense,
+        message: 'Get Upcoming Expenses Successfully',
+        data: upcomingExpenses,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async expectedExpense(req, res, next) {
+    try {
+      const currentExpense = await prisma.profiles.findFirst({
+        where: {
+          accountId: res.account.id,
+        },
+        select: {
+          totalExpenses: true,
+        },
+      });
+
+      const expensesUpcoming = await prisma.expenses.aggregate({
+        where: {
+          accountId: res.account.id,
+        },
+        _sum: {
+          amount: true,
+        },
+      });
+
+      const totalCurrentExpense = currentExpense?.totalIncome || 0;
+      const totalExpensesUpcoming = expensesUpcoming._sum.amount || 0;
+
+      res.status(200).json({
+        status: true,
+        message: 'Get Expected Income Successfully',
+        data: {
+          accountId: res.account.id,
+          expectedExpence: totalCurrentExpense + totalExpensesUpcoming,
+        },
       });
     } catch (error) {
       next(error);
@@ -91,6 +206,8 @@ export class ExpenceController {
               amount: true,
               date: true,
               paymentMethod: true,
+              isRequring: true,
+              frequency: true,
             },
           });
 
@@ -130,6 +247,14 @@ export class ExpenceController {
               balance: updateProfile.totalBalance,
             },
           });
+
+          if (!itemExpense.isRequring) {
+            await prisma.expenses.delete({
+              where: {
+                id: req.params.source_expense_id,
+              },
+            });
+          }
 
           return updateProfile;
         }

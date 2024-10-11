@@ -15,6 +15,7 @@ import { ExpenceController } from '../controllers/expence-controller.js';
 import { createExpenseSchema } from '../validations/expense-validation.js';
 import { authenticated } from '../middlewares/authenticated.js';
 import TransactionController from '../controllers/transaction-controller.js';
+import { updateProfileValidation } from '../validations/update-profile-validation.js';
 const router = express.Router();
 
 router.post(
@@ -44,6 +45,11 @@ router.post(
 );
 
 router.get('/profile', authenticated, AccountController.getProfile);
+router.put(
+  '/profile/:id',
+  validateWithToken(updateProfileValidation),
+  AccountController.update
+);
 router.get('/transaction', authenticated, TransactionController.get);
 router.get('/transaction/:id', authenticated, TransactionController.getById);
 
@@ -85,12 +91,19 @@ router.post(
   GoalController.create
 );
 router.get('/goal', authenticated, GoalController.get);
-
-router.post(
-  '/expence',
-  validateWithToken(createExpenseSchema),
-  ExpenceController.create
+router.delete('/goal/:id', authenticated, GoalController.delete);
+router.put(
+  '/goal/:id',
+  validateWithToken(createGoalSchema),
+  GoalController.update
 );
+
+router.get(
+  '/expected-expence',
+  authenticated,
+  ExpenceController.expectedExpense
+);
+
 router.get('/expence-upcoming', authenticated, ExpenceController.upcoming);
 router.get('/balance-history', authenticated, AccountController.balanceHistory);
 
@@ -100,7 +113,14 @@ router.post(
   ExpenceController.earned
 );
 
+router.post(
+  '/expence',
+  validateWithToken(createExpenseSchema),
+  ExpenceController.create
+);
+router.delete('/expence/:id', authenticated, ExpenceController.delete);
 router.get('/expence', authenticated, ExpenceController.get);
 router.get('/expence/:id', authenticated, ExpenceController.getById);
+router.put('/expence/:id', authenticated, ExpenceController.update);
 
 export default router;

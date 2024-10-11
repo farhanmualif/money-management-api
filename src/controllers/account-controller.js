@@ -59,6 +59,61 @@ export default class AccountController {
     }
   }
 
+  static async update(req, res, next) {
+    const { email, phoneNumber, firstName, lastName } = req.body;
+    try {
+      const findAccount = await prisma.accounts.findUnique({
+        where: {
+          id: req.params.id,
+        },
+      });
+      if (findAccount == null) {
+        throw new NotFoundError('Account Not Found');
+      }
+      const updateProfile = await prisma.accounts.update({
+        where: {
+          id: req.params.id,
+        },
+        data: {
+          email,
+          phoneNumber,
+          Profile: {
+            update: {
+              data: {
+                firstName,
+                lastName,
+              },
+            },
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          phoneNumber: true,
+          Profile: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
+
+      res.status(200).json({
+        status: true,
+        message: 'Update Profile successful',
+        data: {
+          email: updateProfile.email,
+          phoneNumber: updateProfile.phoneNumber,
+          firstName: updateProfile.Profile.firstName,
+          lastName: updateProfile.Profile.lastName,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async signUp(req, res, next) {
     try {
       const user = req.body;
@@ -79,6 +134,7 @@ export default class AccountController {
         data: {
           email: user.email,
           password: user.password,
+          phoneNumber: user.phone_number,
           Profile: {
             create: {
               firstName: user.first_name ?? null,
@@ -90,6 +146,8 @@ export default class AccountController {
           },
         },
       });
+
+      delete createAccount.password;
 
       res.status(201).json({
         status: true,
@@ -107,12 +165,21 @@ export default class AccountController {
         where: {
           accountId: res.account.id,
         },
+        include: {
+          account: {},
+        },
       });
+      const account = profile.account;
+      delete profile.account;
+      delete account.password;
 
       res.status(201).json({
         status: true,
         message: 'Get Data Profile Successfully',
-        data: profile,
+        data: {
+          ...profile,
+          ...account,
+        },
       });
     } catch (error) {
       next(error);
@@ -190,7 +257,11 @@ export default class AccountController {
   }
   static async balanceHistory(req, res, next) {
     try {
-      const balanceHistory = await prisma.balanceHistory.findMany();
+      const balanceHistory = await prisma.balanceHistory.findMany({
+        where: {
+          accountId: res.account.id,
+        },
+      });
 
       res.status(201).json({
         status: true,

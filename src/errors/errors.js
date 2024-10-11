@@ -20,7 +20,12 @@ export class UnauthorizedError extends BaseError {
 }
 
 export class BadRequestError extends BaseError {
-  constructor(message = 'Bad request') { 
+  constructor(message = 'Bad request') {
     super(message, 400);
+  }
+}
+export class UnprocessableEntityError extends BaseError {
+  constructor(message = 'Unprocess request') {
+    super(message, 422);
   }
 }

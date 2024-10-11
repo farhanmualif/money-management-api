@@ -7,11 +7,34 @@ export default class TransactionController {
         where: {
           accountId: res.account.id,
         },
+        include: {
+          account: {
+            include: {
+              Expenses: {
+                select: {
+                  id: true,
+                  accountId: true,
+                  name: true,
+                  amount: true,
+                  paymentMethod: true,
+                  date: true,
+                  frequency: true,
+                  isRequring: true,
+                },
+              },
+            },
+          },
+        },
       });
+      const data = {
+        data: transactions.map((e) => {
+          return e.account.Expenses;
+        }),
+      };
       res.status(201).json({
         status: true,
         message: 'Account created successfully',
-        data: transactions,
+        data: data.data[0],
       });
     } catch (error) {
       next(error);

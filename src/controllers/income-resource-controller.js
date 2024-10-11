@@ -1,5 +1,10 @@
 import { prisma } from '../config/db.js';
-import { NotFoundError } from '../errors/errors.js';
+import { NotFoundError, UnprocessableEntityError } from '../errors/errors.js';
+import {
+  differenceInDays,
+  differenceInWeeks,
+  differenceInMonths,
+} from 'date-fns';
 
 export default class IncomeRecourceController {
   static async create(req, res, next) {
@@ -103,50 +108,111 @@ export default class IncomeRecourceController {
 
   static async earned(req, res, next) {
     try {
-      const updatedTotalIncome = await prisma.$transaction(
-        async function (prisma) {
-          const itemIncome = await prisma.incomeResources.findFirstOrThrow({
-            where: {
-              id: req.params.source_income_id,
-            },
-          });
-
-          const currentIncome = await prisma.profiles.findFirstOrThrow({
-            where: {
-              accountId: res.account.id,
-            },
-            select: {
-              totalIncome: true,
-              totalBalance: true,
-            },
-          });
-
-          const updateProfile = await prisma.profiles.update({
-            where: {
-              accountId: res.account.id,
-            },
-            data: {
-              totalBalance: currentIncome.totalBalance + itemIncome.amount,
-              totalIncome: currentIncome.totalIncome + itemIncome.amount,
-            },
-          });
-
-          await prisma.balanceHistory.create({
-            data: {
-              accountId: res.account.id,
-              balance: updateProfile.totalBalance,
-            },
-          });
-
-          await prisma.incomeResources.delete({
-            where: {
-              id: req.params.source_income_id,
-            },
-          });
-
-          return updateProfile;
+      const updatedTotalIncome = await prisma.$transaction(async (prisma) => {
+        // Validate input
+        console.log(req.params.source_income_id);
+        const sourceIncomeId = req.params.source_income_id;
+        if (!sourceIncomeId) {
+          throw new BadRequestError('Invalid source income ID');
         }
-      );
+
+        // Find income resource
+        const itemIncome = await prisma.incomeResources.findFirst({
+          where: { id: sourceIncomeId, isEarned: false },
+        });
+
+        if (!itemIncome) {
+          throw new NotFoundError('Income resource not found');
+        }
+
+        const currentTime = new Date();
+        const lastEarnedDate = new Date(itemIncome.date);
+
+        // Check frequency and compare dates
+        const frequency = itemIncome.frequency.toLowerCase();
+        console.log(frequency);
+        let canEarn = false;
+        let waitTime;
+
+        switch (frequency) {
+          case 'daily':
+            const daysDiff = differenceInDays(currentTime, lastEarnedDate);
+            canEarn = daysDiff >= 1;
+            waitTime = canEarn ? 0 : 1 - daysDiff;
+            break;
+          case 'weekly':
+            const weeksDiff = differenceInWeeks(currentTime, lastEarnedDate);
+            canEarn = weeksDiff >= 1;
+            waitTime = canEarn
+              ? 0
+              : 7 - (differenceInDays(currentTime, lastEarnedDate) % 7);
+            break;
+          case 'monthly':
+            const monthsDiff = differenceInMonths(currentTime, lastEarnedDate);
+            canEarn = monthsDiff >= 1;
+            // For simplicity, we'll assume a month is 30 days here
+            waitTime = canEarn
+              ? 0
+              : 30 - (differenceInDays(currentTime, lastEarnedDate) % 30);
+            break;
+          default:
+            throw new UnprocessableEntityError('Invalid frequency');
+        }
+
+        if (!canEarn) {
+          throw new UnprocessableEntityError(
+            `You need to wait ${waitTime} more day(s) before earning again.`
+          );
+        }
+
+        // Get current profile
+        const currentProfile = await prisma.profiles.findFirst({
+          where: { accountId: res.account.id },
+          select: { totalIncome: true, totalBalance: true },
+        });
+
+        if (!currentProfile) {
+          throw new NotFoundError('Profile not found');
+        }
+
+        // Update profile
+        const updatedProfile = await prisma.profiles.update({
+          where: { accountId: res.account.id },
+          data: {
+            totalBalance: {
+              increment: itemIncome.amount,
+            },
+            totalIncome: {
+              increment: itemIncome.amount,
+            },
+          },
+        });
+
+        // Create balance history
+        await prisma.balanceHistory.create({
+          data: {
+            accountId: res.account.id,
+            balance: updatedProfile.totalBalance,
+          },
+        });
+
+        // Update last earned date
+        if (itemIncome.isRecurring == true) {
+          await prisma.incomeResources.update({
+            where: { id: sourceIncomeId },
+            data: { date: currentTime, isEarned: true },
+          });
+        }
+
+        // Delete if not recurring
+        if (!itemIncome.isRecurring) {
+          await prisma.incomeResources.delete({
+            where: { id: sourceIncomeId },
+          });
+        }
+
+        return updatedProfile;
+      });
 
       res.status(200).json({
         status: true,
@@ -157,6 +223,7 @@ export default class IncomeRecourceController {
       next(error);
     }
   }
+
   static async deleteIncome(req, res, next) {
     try {
       await prisma.incomeResources.delete({

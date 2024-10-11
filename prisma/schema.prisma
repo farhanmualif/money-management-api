@@ -18,6 +18,7 @@ model Accounts {
   email           String            @unique
   password        String
   Profile         Profiles?
+  phoneNumber     String            @map("phone_number")
   Token           Token[]
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
@@ -88,6 +89,7 @@ model IncomeResources {
   name        String
   amount      Float
   isRecurring Boolean  @map("is_recuring")
+  isEarned    Boolean  @default(false) @map("is_earned")
   frequency   String
   account_id  String   @db.ObjectId
   date        DateTime @map("date")
@@ -128,6 +130,9 @@ model Expenses {
   name          String
   date          DateTime
   amount        Float
+  isRequring    Boolean  @map("is_requring")
+  isEarned      Boolean  @default(false) @map("is_earned")
+  frequency     String
   paymentMethod String   @map("payment_method")
   account       Accounts @relation(fields: [accountId], references: [id])
   accountId     String   @map("account_id") @db.ObjectId
