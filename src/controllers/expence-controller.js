@@ -110,12 +110,12 @@ export class ExpenceController {
 
   static async upcoming(req, res, next) {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set ke awal hari
+      // Set ke awal hari
 
       const upcomingExpenses = await prisma.expenses.findMany({
         where: {
           isEarned: false,
+          accountId: res.account.id,
         },
         orderBy: {
           date: 'asc',
@@ -123,30 +123,30 @@ export class ExpenceController {
       });
 
       // Opsional: Tambahkan logika untuk mengelompokkan pengeluaran berdasarkan periode waktu
-      const groupedExpenses = {
-        today: [],
-        thisWeek: [],
-        thisMonth: [],
-        later: [],
-      };
+      // const groupedExpenses = {
+      //   today: [],
+      //   thisWeek: [],
+      //   thisMonth: [],
+      //   later: [],
+      // };
 
-      const oneWeekLater = new Date(today);
-      oneWeekLater.setDate(today.getDate() + 7);
+      // const oneWeekLater = new Date(today);
+      // oneWeekLater.setDate(today.getDate() + 7);
 
-      const oneMonthLater = new Date(today);
-      oneMonthLater.setMonth(today.getMonth() + 1);
+      // const oneMonthLater = new Date(today);
+      // oneMonthLater.setMonth(today.getMonth() + 1);
 
-      upcomingExpenses.forEach((expense) => {
-        if (expense.date.toDateString() === today.toDateString()) {
-          groupedExpenses.today.push(expense);
-        } else if (expense.date < oneWeekLater) {
-          groupedExpenses.thisWeek.push(expense);
-        } else if (expense.date < oneMonthLater) {
-          groupedExpenses.thisMonth.push(expense);
-        } else {
-          groupedExpenses.later.push(expense);
-        }
-      });
+      // upcomingExpenses.forEach((expense) => {
+      //   if (expense.date.toDateString() === today.toDateString()) {
+      //     groupedExpenses.today.push(expense);
+      //   } else if (expense.date < oneWeekLater) {
+      //     groupedExpenses.thisWeek.push(expense);
+      //   } else if (expense.date < oneMonthLater) {
+      //     groupedExpenses.thisMonth.push(expense);
+      //   } else {
+      //     groupedExpenses.later.push(expense);
+      //   }
+      // });
 
       res.status(200).json({
         status: true,
@@ -198,9 +198,12 @@ export class ExpenceController {
     try {
       const updatedTotalIncome = await prisma.$transaction(
         async function (prisma) {
-          const itemExpense = await prisma.expenses.findFirstOrThrow({
+          const itemExpense = await prisma.expenses.update({
             where: {
               id: req.params.source_expense_id,
+            },
+            data: {
+              isEarned: true,
             },
             select: {
               amount: true,
@@ -247,14 +250,6 @@ export class ExpenceController {
               balance: updateProfile.totalBalance,
             },
           });
-
-          if (!itemExpense.isRequring) {
-            await prisma.expenses.delete({
-              where: {
-                id: req.params.source_expense_id,
-              },
-            });
-          }
 
           return updateProfile;
         }

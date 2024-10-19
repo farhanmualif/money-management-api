@@ -110,7 +110,6 @@ export default class IncomeRecourceController {
     try {
       const updatedTotalIncome = await prisma.$transaction(async (prisma) => {
         // Validate input
-        console.log(req.params.source_income_id);
         const sourceIncomeId = req.params.source_income_id;
         if (!sourceIncomeId) {
           throw new BadRequestError('Invalid source income ID');
@@ -130,7 +129,6 @@ export default class IncomeRecourceController {
 
         // Check frequency and compare dates
         const frequency = itemIncome.frequency.toLowerCase();
-        console.log(frequency);
         let canEarn = false;
         let waitTime;
 
