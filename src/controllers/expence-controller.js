@@ -198,6 +198,8 @@ export class ExpenceController {
     try {
       const updatedTotalIncome = await prisma.$transaction(
         async function (prisma) {
+
+          
           const itemExpense = await prisma.expenses.update({
             where: {
               id: req.params.source_expense_id,

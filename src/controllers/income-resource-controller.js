@@ -202,13 +202,6 @@ export default class IncomeRecourceController {
           });
         }
 
-        // Delete if not recurring
-        if (!itemIncome.isRecurring) {
-          await prisma.incomeResources.delete({
-            where: { id: sourceIncomeId },
-          });
-        }
-
         return updatedProfile;
       });
 
