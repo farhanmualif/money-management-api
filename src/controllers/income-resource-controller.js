@@ -69,36 +69,23 @@ export default class IncomeRecourceController {
 
   static async expectedIncome(req, res, next) {
     try {
-      // Ambil totalIncome dari tabel profiles berdasarkan accountId
-      const currentIncome = await prisma.profiles.findFirst({
-        where: {
-          accountId: res.account.id,
-        },
-        select: {
-          totalIncome: true,
-        },
-      });
-
       // Agregasi sum dari amount di tabel incomeResources berdasarkan account_id
       const incomeResources = await prisma.incomeResources.aggregate({
         where: {
           account_id: res.account.id,
+          isEarned: false,
         },
         _sum: {
           amount: true,
         },
       });
 
-      // Pastikan nilai yang diambil tidak null sebelum melakukan penjumlahan
-      const totalCurrentIncome = currentIncome?.totalIncome || 0;
-      const totalIncomeResources = incomeResources._sum.amount || 0;
-
       res.status(200).json({
         status: true,
         message: 'Get Expected Income Successfully',
         data: {
           accountId: res.account.id,
-          expectedIncome: totalCurrentIncome + totalIncomeResources,
+          expectedIncome: incomeResources._sum.amount,
         },
       });
     } catch (error) {
@@ -116,19 +103,19 @@ export default class IncomeRecourceController {
         }
 
         // Find income resource
-        const itemIncome = await prisma.incomeResources.findFirst({
+        const incomeResource = await prisma.incomeResources.findFirst({
           where: { id: sourceIncomeId, isEarned: false },
         });
 
-        if (!itemIncome) {
+        if (!incomeResource) {
           throw new NotFoundError('Income resource not found');
         }
 
         const currentTime = new Date();
-        const lastEarnedDate = new Date(itemIncome.date);
+        const lastEarnedDate = new Date(incomeResource.date);
 
         // Check frequency and compare dates
-        const frequency = itemIncome.frequency.toLowerCase();
+        const frequency = incomeResource.frequency.toLowerCase();
         let canEarn = false;
         let waitTime;
 
@@ -178,10 +165,10 @@ export default class IncomeRecourceController {
           where: { accountId: res.account.id },
           data: {
             totalBalance: {
-              increment: itemIncome.amount,
+              increment: incomeResource.amount,
             },
             totalIncome: {
-              increment: itemIncome.amount,
+              increment: incomeResource.amount,
             },
           },
         });
@@ -195,12 +182,17 @@ export default class IncomeRecourceController {
         });
 
         // Update last earned date
-        if (itemIncome.isRecurring == true) {
-          await prisma.incomeResources.update({
-            where: { id: sourceIncomeId },
-            data: { date: currentTime, isEarned: true },
-          });
-        }
+        // if (itemIncome.isRecurring == true) {
+        //   await prisma.incomeResources.update({
+        //     where: { id: sourceIncomeId },
+        //     data: { date: currentTime, isEarned: true },
+        //   });
+        // }
+        
+        await prisma.incomeResources.update({
+          where: { id: sourceIncomeId },
+          data: { date: currentTime, isEarned: true },
+        });
 
         return updatedProfile;
       });
