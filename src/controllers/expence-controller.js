@@ -187,7 +187,7 @@ export class ExpenceController {
     try {
       const updatedTotalIncome = await prisma.$transaction(
         async function (prisma) {
-
+          // Get current profile data
           const currentExpense = await prisma.profiles.findFirstOrThrow({
             where: {
               accountId: res.account.id,
@@ -199,24 +199,21 @@ export class ExpenceController {
             },
           });
 
+          // Get expense data first to check amount
           const findExpense = await prisma.expenses.findFirst({
             where: {
               id: req.params.source_expense_id,
             },
             select: {
               amount: true,
-              date: true,
-              paymentMethod: true,
-              isRequring: true,
-              frequency: true,
             },
           });
 
-          if (currentExpense.totalBalance-findExpense.amount <= 0) {
-            throw new UnprocessableEntityError('Balance Is Not enough')
+          // Validate if balance is sufficient
+          if (currentExpense.totalBalance < findExpense.amount) {
+            throw new UnprocessableEntityError('Balance is not enough');
           }
 
-          
           const itemExpense = await prisma.expenses.update({
             where: {
               id: req.params.source_expense_id,
@@ -232,8 +229,6 @@ export class ExpenceController {
               frequency: true,
             },
           });
-
-
 
           await prisma.transaction.create({
             data: {
