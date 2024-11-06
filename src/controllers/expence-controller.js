@@ -160,33 +160,22 @@ export class ExpenceController {
 
   static async expectedExpense(req, res, next) {
     try {
-      const currentExpense = await prisma.profiles.findFirst({
-        where: {
-          accountId: res.account.id,
-        },
-        select: {
-          totalExpenses: true,
-        },
-      });
-
       const expensesUpcoming = await prisma.expenses.aggregate({
         where: {
           accountId: res.account.id,
+          isEarned: false,
         },
         _sum: {
           amount: true,
         },
       });
 
-      const totalCurrentExpense = currentExpense?.totalIncome || 0;
-      const totalExpensesUpcoming = expensesUpcoming._sum.amount || 0;
-
       res.status(200).json({
         status: true,
         message: 'Get Expected Income Successfully',
         data: {
           accountId: res.account.id,
-          expectedExpence: totalCurrentExpense + totalExpensesUpcoming,
+          expectedExpence: expensesUpcoming._sum.amount,
         },
       });
     } catch (error) {
@@ -198,6 +187,34 @@ export class ExpenceController {
     try {
       const updatedTotalIncome = await prisma.$transaction(
         async function (prisma) {
+
+          const currentExpense = await prisma.profiles.findFirstOrThrow({
+            where: {
+              accountId: res.account.id,
+            },
+            select: {
+              totalExpenses: true,
+              totalBalance: true,
+              totalIncome: true,
+            },
+          });
+
+          const findExpense = await prisma.expenses.findFirst({
+            where: {
+              id: req.params.source_expense_id,
+            },
+            select: {
+              amount: true,
+              date: true,
+              paymentMethod: true,
+              isRequring: true,
+              frequency: true,
+            },
+          });
+
+          if (currentExpense.totalBalance-findExpense.amount <= 0) {
+            throw new UnprocessableEntityError('Balance Is Not enough')
+          }
 
           
           const itemExpense = await prisma.expenses.update({
@@ -216,16 +233,7 @@ export class ExpenceController {
             },
           });
 
-          const currentExpense = await prisma.profiles.findFirstOrThrow({
-            where: {
-              accountId: res.account.id,
-            },
-            select: {
-              totalExpenses: true,
-              totalBalance: true,
-              totalIncome: true,
-            },
-          });
+
 
           await prisma.transaction.create({
             data: {

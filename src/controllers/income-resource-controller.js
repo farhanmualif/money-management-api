@@ -104,7 +104,7 @@ export default class IncomeRecourceController {
 
         // Find income resource
         const incomeResource = await prisma.incomeResources.findFirst({
-          where: { id: sourceIncomeId, isEarned: false },
+          where: { id: sourceIncomeId },
         });
 
         if (!incomeResource) {
@@ -114,7 +114,7 @@ export default class IncomeRecourceController {
         const currentTime = new Date();
         const lastEarnedDate = new Date(incomeResource.date);
 
-        // Check frequency and compare dates
+        // Check frequency and compare dateso
         const frequency = incomeResource.frequency.toLowerCase();
         let canEarn = false;
         let waitTime;
@@ -188,7 +188,7 @@ export default class IncomeRecourceController {
         //     data: { date: currentTime, isEarned: true },
         //   });
         // }
-        
+
         await prisma.incomeResources.update({
           where: { id: sourceIncomeId },
           data: { date: currentTime, isEarned: true },
