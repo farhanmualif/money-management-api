@@ -175,7 +175,7 @@ export class ExpenceController {
         message: 'Get Expected Income Successfully',
         data: {
           accountId: res.account.id,
-          expectedExpence: expensesUpcoming._sum.amount,
+          expectedExpence: expensesUpcoming._sum.amount ?? 0,
         },
       });
     } catch (error) {

@@ -85,7 +85,7 @@ export default class IncomeRecourceController {
         message: 'Get Expected Income Successfully',
         data: {
           accountId: res.account.id,
-          expectedIncome: incomeResources._sum.amount,
+          expectedIncome: incomeResources._sum.amount ?? 0,
         },
       });
     } catch (error) {
