@@ -209,11 +209,38 @@ export default class IncomeRecourceController {
 
   static async deleteIncome(req, res, next) {
     try {
-      await prisma.incomeResources.delete({
-        where: {
-          id: req.params.id,
-          account_id: res.account.id,
-        },
+      await prisma.$transaction(async function (prisma) {
+        const incomeResource = await prisma.incomeResources.findFirst({
+          where: {
+            id: req.params.id,
+            account_id: res.account.id,
+          },
+          select: {
+            amount: true,
+          },
+        });
+
+        if (!incomeResource) {
+          throw Error('Income Not Found');
+        }
+
+        await prisma.profiles.update({
+          where: {
+            accountId: res.account.id,
+          },
+          data: {
+            totalIncome: {
+              decrement: incomeResource.amount,
+            },
+          },
+        });
+
+        await prisma.incomeResources.delete({
+          where: {
+            id: req.params.id,
+            account_id: res.account.id,
+          },
+        });
       });
 
       res.status(200).json({
@@ -225,6 +252,7 @@ export default class IncomeRecourceController {
       next(error);
     }
   }
+
   static async updateIncome(req, res, next) {
     try {
       const findIncome = await prisma.incomeResources.findFirst({

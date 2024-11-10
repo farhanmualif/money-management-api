@@ -4,7 +4,7 @@ import {
   differenceInWeeks,
   differenceInMonths,
 } from 'date-fns';
-import { UnprocessableEntityError } from '../errors/errors.js';
+import { NotFoundError, UnprocessableEntityError } from '../errors/errors.js';
 
 export class ExpenceController {
   static async create(req, res, next) {
@@ -48,22 +48,65 @@ export class ExpenceController {
       next(error);
     }
   }
+
   static async delete(req, res, next) {
-    try {
-      await prisma.expenses.delete({
-        where: {
-          id: req.params.id,
-        },
+    const { id } = req.params;
+    const accountId = res.account.id;
+
+    if (!id || !accountId) {
+      return res.status(400).json({
+        status: false,
+        message: 'Invalid input parameters',
       });
-      res.status(200).json({
+    }
+
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const expense = await tx.expenses.findUnique({
+          where: {
+            id: id,
+            accountId: accountId,
+          },
+          select: {
+            amount: true,
+          },
+        });
+
+        if (!expense) {
+          throw new NotFoundError('Expense Not Found');
+        }
+
+        await tx.profiles.update({
+          where: {
+            accountId: accountId,
+          },
+          data: {
+            totalExpenses: {
+              decrement: expense.amount,
+            },
+          },
+        });
+
+        await tx.expenses.delete({
+          where: {
+            id,
+            accountId,
+          },
+        });
+
+        return { message: 'Expense deleted successfully' };
+      });
+
+      return res.status(200).json({
         status: true,
-        message: 'Delete Expenses Successfully',
-        data: '',
+        message: result.message,
+        data: null,
       });
     } catch (error) {
       next(error);
     }
   }
+
   static async update(req, res, next) {
     const body = req.body;
     try {
